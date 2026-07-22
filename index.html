@@ -81,15 +81,17 @@
   #pageBox{margin:0 auto}
   .page{background:#fff;color:#111;font-family:"DFKai-SB","BiauKai","KaiTi","標楷體","Noto Serif TC",serif;
     width:794px;min-height:1123px;padding:76px 68px;box-shadow:0 3px 20px rgba(20,40,80,.16);
-    transform-origin:top left;line-height:2;font-size:16px;letter-spacing:.3px}
-  .page h1{text-align:center;font-size:25px;letter-spacing:12px;margin:0 0 22px;font-weight:700}
-  .page .meta{font-size:14.5px;margin:2px 0;letter-spacing:.5px}
+    transform-origin:top left;line-height:1.95;font-size:18px;letter-spacing:.3px}
+  .page h1{text-align:center;font-size:27px;letter-spacing:12px;margin:0 0 22px;font-weight:700}
+  .page .meta{font-size:16px;margin:3px 0;letter-spacing:.5px}
   .page table{width:100%;border-collapse:collapse;margin:12px 0 18px}
-  .page td,.page th{border:1px solid #000;padding:7px 8px;font-size:13.5px;vertical-align:top;line-height:1.55}
+  .page td,.page th{border:1px solid #000;padding:7px 8px;font-size:15px;vertical-align:top;line-height:1.6}
   .page th{font-weight:700;text-align:center;background:#fafafa}
-  .page .party{font-weight:700;margin:9px 0 2px}
-  .page .pf{padding-left:2.6em;margin:1px 0;font-size:15px}
-  .page .sec{font-weight:700;margin:13px 0 3px}
+  .page .party{font-weight:700;margin:10px 0 2px}
+  .page .pf{padding-left:2.6em;margin:2px 0;font-size:17px}
+  .page .pf .c1{display:inline-block;width:52%;vertical-align:top}
+  .page .pf .c2{display:inline-block;width:46%;vertical-align:top}
+  .page .sec{font-weight:700;margin:14px 0 3px}
   .page .p{text-indent:2em;margin:5px 0;text-align:justify}
   .page .right{text-align:right}
   .page .center{text-align:center}
@@ -498,12 +500,10 @@ function htmlPetition(mo){
       h+='<div class="party">'+esc(p.role)+'：'+esc(p.name||'')+'</div>';
     }else{
       h+='<div class="party">'+esc(p.role)+'：</div>';
-      h+='<div class="pf">姓名：'+esc(p.name||'')+'</div>';
-      h+='<div class="pf">身分證字號：'+esc(p.id||'')+'</div>';
+      h+='<div class="pf"><span class="c1">姓名：'+esc(p.name||'')+'</span><span class="c2">身分證字號：'+esc(p.id||'')+'</span></div>';
       h+='<div class="pf">聯絡地址：'+esc(p.addr||'')+'</div>';
-      h+='<div class="pf">電話：'+esc(p.tel||'')+'</div>';
-      h+='<div class="pf">傳真：'+esc(p.fax||'')+'</div>';
-      h+='<div class="pf">電子信箱：'+esc(p.email||'')+'</div>';
+      h+='<div class="pf"><span class="c1">電話：'+esc(p.tel||'')+'</span>'+(p.fax?'<span class="c2">傳真：'+esc(p.fax)+'</span>':'')+'</div>';
+      if(p.email) h+='<div class="pf">電子信箱：'+esc(p.email)+'</div>';
     }
   });
   h+='<div class="sec" style="text-indent:0;margin-top:12px">'+esc(mo.eventText)+'</div>';
@@ -568,6 +568,8 @@ function secP(t){return P({spacing:{before:120,after:40},children:[R(t,{bold:tru
 function bodyP(t){return P({spacing:{after:40},indent:{firstLine:480},children:[R(t)]})}
 function rightP(t){return P({alignment:docx.AlignmentType.RIGHT,spacing:{after:60},children:[R(t)]})}
 function centerP(t,b){return P({alignment:docx.AlignmentType.CENTER,spacing:{before:120},children:[R(t,{bold:!!b})]})}
+function lineP(t){return P({spacing:{after:0},indent:{left:600},children:[R(t)]})}
+function pairP(a,b){var kids=[R(a)];if(b){kids.push(R('\t'));kids.push(R(b));}return P({spacing:{after:0},indent:{left:600},tabStops:[{type:docx.TabStopType.LEFT,position:5200}],children:kids});}
 function cell(text,w,b){return new docx.TableCell({width:{size:w,type:docx.WidthType.PERCENTAGE},children:[P({children:[R(text,{size:24,bold:!!b})]})]});}
 function partyTableDocx(parties){
   var rows=[new docx.TableRow({children:[cell('稱謂',12,true),cell('姓名或名稱',16,true),cell('身分證統一編號',20,true),cell('住居所',36,true),cell('電話',16,true)]})];
@@ -583,9 +585,10 @@ function docxPetition(mo){
     if(p.onlyName){ch.push(P({spacing:{before:80,after:20},children:[R(p.role+'：'+(p.name||''),{bold:true})]}));}
     else{
       ch.push(P({spacing:{before:100,after:0},children:[R(p.role+'：',{bold:true})]}));
-      [['姓名',p.name],['身分證字號',p.id],['聯絡地址',p.addr],['電話',p.tel],['傳真',p.fax],['電子信箱',p.email]].forEach(function(kv){
-        ch.push(P({spacing:{after:0},indent:{left:600},children:[R(kv[0]+'：'+(kv[1]||''))]}));
-      });
+      ch.push(pairP('姓名：'+(p.name||''),'身分證字號：'+(p.id||'')));
+      ch.push(lineP('聯絡地址：'+(p.addr||'')));
+      ch.push(pairP('電話：'+(p.tel||''),p.fax?('傳真：'+p.fax):''));
+      if(p.email) ch.push(lineP('電子信箱：'+p.email));
     }
   });
   ch.push(P({spacing:{before:160,after:80},children:[R(mo.eventText,{bold:true})]}));
