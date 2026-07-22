@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>免費法律文件生成器 ｜ 支付命令・本票裁定・離婚協議書</title>
+<meta name="description" content="免費線上生成支付命令聲請狀、本票裁定聲請狀、離婚協議書，邊填邊預覽，支援 Word 與 PDF 下載，資料不外流。">
+<script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<style>
+  :root{
+    --bg:#eef1f5; --card:#ffffff; --ink:#1f2733; --muted:#6b7686;
+    --line:#e2e6ec; --brand:#1f5fae; --brand-d:#174b8a; --accent:#e8f0fb;
+    --side:#152238; --side-ink:#cdd7e6; --side-act:#2a6fd0;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;background:var(--bg);color:var(--ink);line-height:1.6}
+  a{color:var(--brand)}
+
+  /* ---------- shell ---------- */
+  .shell{display:grid;grid-template-columns:238px 1fr;min-height:100vh}
+
+  /* ---------- sidebar ---------- */
+  .sidebar{background:var(--side);color:var(--side-ink);display:flex;flex-direction:column;padding:18px 14px;gap:6px}
+  .brand{font-size:18px;font-weight:800;color:#fff;letter-spacing:.5px;line-height:1.3;margin-bottom:4px}
+  .brand small{display:block;font-weight:400;font-size:11px;color:#8ea3c4;margin-top:4px}
+  .navlbl{font-size:11px;color:#7d92b3;letter-spacing:2px;margin:14px 4px 4px}
+  .navlist{display:flex;flex-direction:column;gap:6px}
+  .navitem{display:flex;gap:10px;align-items:flex-start;padding:11px 12px;border-radius:10px;cursor:pointer;transition:.15s;border:1px solid transparent}
+  .navitem:hover{background:#1e2f4d}
+  .navitem.active{background:var(--side-act);border-color:#4f8be0;color:#fff}
+  .navitem .ic{font-size:17px;line-height:1.2}
+  .navitem b{font-size:14px;font-weight:700;display:block}
+  .navitem span{font-size:11px;opacity:.8}
+  .sidefoot{margin-top:auto;font-size:11px;color:#7d92b3;line-height:1.7;border-top:1px solid #26375a;padding-top:12px}
+  .comingsoon{font-size:11px;color:#6b80a3;padding:10px 12px;border:1px dashed #35496e;border-radius:10px;text-align:center}
+
+  /* ---------- workspace ---------- */
+  .workspace{display:flex;flex-direction:column;min-width:0}
+  .mobilebar{display:none;position:sticky;top:0;z-index:20;background:#fff;border-bottom:1px solid var(--line);padding:10px 14px;align-items:center;gap:10px}
+  .mobilebar .mtitle{font-weight:700;font-size:15px;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .seg{display:inline-flex;background:#eef1f5;border-radius:10px;padding:3px}
+  .seg button{border:0;background:transparent;padding:7px 14px;border-radius:8px;font-size:13px;font-weight:700;color:#5a677b;cursor:pointer}
+  .seg button.on{background:var(--brand);color:#fff}
+  .menubtn{display:none;border:1px solid var(--line);background:#fff;border-radius:9px;padding:7px 10px;font-size:18px;cursor:pointer;line-height:1}
+
+  .cols{display:grid;grid-template-columns:1fr 1fr;gap:0;flex:1;min-height:0}
+  .formcol{padding:22px 22px 40px;overflow:auto;border-right:1px solid var(--line)}
+  .prevcol{padding:22px;overflow:auto;background:#f6f8fb}
+  .colhead{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:12px}
+  .colhead h2{margin:0;font-size:18px}
+  .colhead .sub{color:var(--muted);font-size:12px}
+
+  /* ---------- form ---------- */
+  .disc{background:#fff7e8;border:1px solid #f0dcae;color:#7a5a10;border-radius:10px;padding:11px 13px;font-size:12.5px;margin:0 0 16px}
+  fieldset{border:1px solid var(--line);border-radius:10px;padding:14px;margin:0 0 16px;background:#fff}
+  legend{padding:0 8px;font-weight:700;color:var(--brand-d);font-size:14px}
+  label.f{display:block;font-size:12.5px;margin:10px 0 4px;font-weight:600;color:#3a4351}
+  input,textarea,select{width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:8px;font-size:14px;font-family:inherit;background:#fbfcfe}
+  input:focus,textarea:focus,select:focus{outline:none;border-color:var(--brand);background:#fff}
+  textarea{resize:vertical;min-height:70px}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  @media(max-width:520px){.row2{grid-template-columns:1fr}}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
+  .chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:20px;padding:6px 12px;font-size:13px;cursor:pointer;background:#fbfcfe;user-select:none}
+  .chip input{width:auto}
+  .chip.on{background:var(--accent);border-color:var(--brand);color:var(--brand-d);font-weight:600}
+  .hint{font-size:11.5px;color:var(--muted);margin-top:4px}
+  .addbtn{background:#eef2f7;color:#3a4351;border:1px dashed #c3ccd8;border-radius:8px;padding:7px 12px;font-size:13px;cursor:pointer;margin-top:8px}
+  .rmbtn{background:#fbecec;color:#b33;border:0;border-radius:6px;padding:4px 9px;font-size:12px;cursor:pointer}
+  .childcard{border:1px dashed #cdd5df;border-radius:8px;padding:12px;margin-top:10px;position:relative}
+  .btns{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px;position:sticky;bottom:0;background:linear-gradient(#fff0,#fff 30%);padding-top:14px}
+  button.act{border:0;border-radius:9px;padding:11px 18px;font-size:14px;font-weight:700;cursor:pointer;color:#fff;background:var(--brand)}
+  button.act:hover{background:var(--brand-d)}
+  button.ghost{background:#fff;color:var(--brand);border:1px solid var(--brand);border-radius:9px;padding:11px 18px;font-size:14px;font-weight:700;cursor:pointer}
+  button.ghost:hover{background:var(--accent)}
+
+  /* ---------- preview ---------- */
+  .doc-preview{background:#fff;color:#111;font-family:"DFKai-SB","BiauKai","KaiTi","標楷體","Noto Serif TC",serif;font-size:15px;line-height:1.9;padding:34px 36px;border:1px solid var(--line);border-radius:6px;min-height:420px;box-shadow:0 2px 12px rgba(20,40,80,.06)}
+  .doc-preview h1{text-align:center;font-size:21px;letter-spacing:8px;margin:0 0 20px;font-weight:700}
+  .doc-preview table{width:100%;border-collapse:collapse;margin:8px 0 14px}
+  .doc-preview td,.doc-preview th{border:1px solid #333;padding:6px 8px;font-size:14px;vertical-align:top}
+  .doc-preview .sec{font-weight:700;margin:14px 0 2px}
+  .doc-preview .p{text-indent:2em;margin:4px 0}
+  .doc-preview .right{text-align:right}
+  .doc-preview .center{text-align:center}
+
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1f2733;color:#fff;padding:12px 20px;border-radius:10px;font-size:14px;opacity:0;transition:.3s;pointer-events:none;z-index:99}
+  .toast.show{opacity:1}
+  .backdrop{display:none}
+
+  /* ---------- responsive ---------- */
+  @media(max-width:980px){
+    .shell{grid-template-columns:1fr}
+    .sidebar{position:fixed;left:0;top:0;bottom:0;width:250px;transform:translateX(-100%);transition:.25s;z-index:60;box-shadow:6px 0 24px rgba(0,0,0,.3)}
+    .sidebar.open{transform:none}
+    .backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:55}
+    .backdrop.show{display:block}
+    .mobilebar{display:flex}
+    .menubtn{display:inline-block}
+    .cols{grid-template-columns:1fr}
+    .formcol{border-right:0}
+    .workspace[data-view="form"] .prevcol{display:none}
+    .workspace[data-view="preview"] .formcol{display:none}
+    .doc-preview{padding:24px 20px}
+  }
+</style>
+</head>
+<body>
+<div class="shell">
+  <!-- ============ SIDEBAR ============ -->
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">免費法律文件生成器<small>線上填寫・即時預覽・免費下載</small></div>
+    <div class="navlbl">選擇書狀類型</div>
+    <div class="navlist" id="nav"></div>
+    <div class="comingsoon" style="margin-top:10px">更多書狀類型<br>陸續新增中…</div>
+    <div class="sidefoot">
+      資料僅於本機瀏覽器處理，不上傳伺服器。<br>
+      本工具僅供自助參考，不構成法律意見。
+    </div>
+  </aside>
+  <div class="backdrop" id="backdrop" onclick="toggleMenu(false)"></div>
+
+  <!-- ============ WORKSPACE ============ -->
+  <main class="workspace" id="workspace" data-view="form">
+    <div class="mobilebar">
+      <button class="menubtn" onclick="toggleMenu(true)">☰</button>
+      <div class="mtitle" id="mtitle">支付命令聲請狀</div>
+      <div class="seg">
+        <button id="seg-form" class="on" onclick="setView('form')">填寫</button>
+        <button id="seg-prev" onclick="setView('preview')">預覽</button>
+      </div>
+    </div>
+
+    <div class="cols">
+      <!-- form -->
+      <section class="formcol">
+        <div class="colhead"><h2 id="formTitle">支付命令聲請狀</h2><span class="sub">依序填寫，右側即時預覽</span></div>
+        <div class="disc" id="disclaimer"></div>
+        <div id="forms">
+          <div id="form-pay"></div>
+          <div id="form-note" style="display:none"></div>
+          <div id="form-divorce" style="display:none"></div>
+        </div>
+        <div class="btns">
+          <button class="act" onclick="downloadWord()">下載 Word（.docx）</button>
+          <button class="ghost" onclick="downloadPDF()">下載 PDF</button>
+        </div>
+      </section>
+      <!-- preview -->
+      <section class="prevcol">
+        <div class="colhead"><h2>文件預覽</h2><span class="sub">邊填邊更新</span></div>
+        <div id="preview" class="doc-preview"></div>
+      </section>
+    </div>
+  </main>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* =========================================================
+   共用工具
+========================================================= */
+var DOC='pay';
+var DOCS=[
+  {k:'pay',ic:'📄',name:'支付命令聲請狀',law:'民訴 §508、§511'},
+  {k:'note',ic:'📄',name:'本票裁定聲請狀',law:'票據法 §123、非訟 §194'},
+  {k:'divorce',ic:'📄',name:'離婚協議書',law:'民法 §1050'}
+];
+function $(id){return document.getElementById(id)}
+function val(id){var e=$(id);return e?e.value.trim():''}
+function toast(m){var t=$('toast');t.textContent=m;t.classList.add('show');setTimeout(function(){t.classList.remove('show')},2200)}
+function rocDate(iso){
+  if(!iso) return '中華民國　　　年　　月　　日';
+  var p=iso.split('-'); if(p.length!==3) return iso;
+  return '中華民國 '+(parseInt(p[0],10)-1911)+' 年 '+parseInt(p[1],10)+' 月 '+parseInt(p[2],10)+' 日';
+}
+function esc(s){return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+function nl2br(s){return esc(s).replace(/\n/g,'<br>')}
+function money(n){if(n===''||n==null)return '';var x=String(n).replace(/[^0-9.]/g,'');if(!x)return '';return Number(x).toLocaleString('en-US')}
+
+var DISC={
+  pay:'依民事訴訟法第 508、511 條，聲請支付命令應表明當事人、請求標的及數量、原因事實並釋明，及應發支付命令之陳述。督促程序聲請費為新臺幣 500 元。',
+  note:'依票據法第 123 條，執票人得聲請法院裁定後強制執行；管轄依非訟事件法第 194 條由票據付款地法院管轄，須以「發票人」為相對人並提出本票原本。',
+  divorce:'依民法第 1050 條，兩願離婚應以書面為之，並有二人以上證人簽名，且應向戶政機關辦理離婚登記，始生效力。'
+};
+
+/* =========================================================
+   側欄 / 導覽
+========================================================= */
+(function buildNav(){
+  var nav=$('nav');
+  DOCS.forEach(function(d){
+    var el=document.createElement('div');
+    el.className='navitem'+(d.k===DOC?' active':'');
+    el.dataset.doc=d.k;
+    el.innerHTML='<span class="ic">'+d.ic+'</span><span><b>'+d.name+'</b><span>'+d.law+'</span></span>';
+    el.onclick=function(){switchDoc(d.k);toggleMenu(false)};
+    nav.appendChild(el);
+  });
+})();
+function toggleMenu(open){
+  $('sidebar').classList.toggle('open',open);
+  $('backdrop').classList.toggle('show',open);
+}
+function setView(v){
+  $('workspace').dataset.view=v;
+  $('seg-form').classList.toggle('on',v==='form');
+  $('seg-prev').classList.toggle('on',v==='preview');
+}
+
+/* =========================================================
+   當事人 / 表格片段
+========================================================= */
+function partyBlock(prefix,label){
+  return `<fieldset><legend>${label}</legend>
+    <div class="row2">
+      <div><label class="f">姓名 / 名稱</label><input id="${prefix}_name" placeholder="王大明"></div>
+      <div><label class="f">身分證統一編號 / 統編</label><input id="${prefix}_id" placeholder="A123456789"></div>
+    </div>
+    <label class="f">住居所 / 事務所地址</label><input id="${prefix}_addr" placeholder="臺北市中正區○○路○段○號○樓">
+    <div class="row2">
+      <div><label class="f">聯絡電話</label><input id="${prefix}_tel" placeholder="0912-345-678"></div>
+      <div><label class="f">電子郵件（選填）</label><input id="${prefix}_email" placeholder="選填"></div>
+    </div>
+  </fieldset>`;
+}
+
+/* =========================================================
+   1. 支付命令聲請狀 表單
+========================================================= */
+var ATTACHMENTS=['借據','支票','匯款紀錄','通訊軟體對話紀錄','電子郵件(Email)','存證信函','催告函','發票','收據','合約','報價單'];
+$('form-pay').innerHTML=`
+  <label class="f">管轄法院</label>
+  <input id="pay_court" placeholder="臺灣臺北地方法院">
+  <div class="hint">支付命令專屬債務人住所地等法院管轄（民訴 §510）。</div>
+  ${partyBlock('pay_cred','債權人（聲請人）')}
+  <fieldset><legend>債權人法定代理人（選填）</legend>
+    <div class="row2">
+      <div><label class="f">姓名</label><input id="pay_credlr_name" placeholder="無則留空"></div>
+      <div><label class="f">關係 / 職稱</label><input id="pay_credlr_rel" placeholder="如：法定代理人／負責人"></div>
+    </div>
+  </fieldset>
+  ${partyBlock('pay_debt','債務人（相對人）')}
+  <fieldset><legend>請求之標的及數量</legend>
+    <div class="row2">
+      <div><label class="f">請求金額（新臺幣元）</label><input id="pay_amount" type="number" placeholder="150000"></div>
+      <div><label class="f">利息年利率（%）</label><input id="pay_rate" type="number" value="5" step="0.01"></div>
+    </div>
+    <div class="row2">
+      <div><label class="f">利息起算日</label><input id="pay_ratefrom" type="date"></div>
+      <div><label class="f">違約金 / 其他（選填）</label><input id="pay_penalty" placeholder="如：另按○計算之違約金"></div>
+    </div>
+  </fieldset>
+  <label class="f">請求之原因事實（民訴 §511，並應釋明）</label>
+  <textarea id="pay_reason" placeholder="例：相對人於民國113年3月1日向聲請人借款新臺幣15萬元，約定於113年6月1日清償，屆期迭經催討均未給付…"></textarea>
+  <label class="f">對待給付已履行情形（選填）</label>
+  <input id="pay_counter" placeholder="如有對待給付請說明已履行情形，無則留空">
+  <fieldset><legend>檢附證物（可複選）</legend>
+    <div class="chips" id="pay_attach"></div>
+    <label class="f" style="margin-top:10px">其他證物（自行填寫）</label>
+    <input id="pay_attach_other" placeholder="如：本票、驗收單…（多項以頓號分隔）">
+  </fieldset>
+`;
+(function(){
+  var box=$('pay_attach');
+  ATTACHMENTS.forEach(function(a){
+    var l=document.createElement('label');l.className='chip';
+    l.innerHTML='<input type="checkbox" value="'+a+'"> '+a;
+    l.querySelector('input').addEventListener('change',function(){l.classList.toggle('on',this.checked)});
+    box.appendChild(l);
+  });
+})();
+
+/* =========================================================
+   2. 本票裁定聲請狀 表單
+========================================================= */
+$('form-note').innerHTML=`
+  <label class="f">管轄法院（票據付款地法院）</label>
+  <input id="note_court" placeholder="臺灣臺北地方法院">
+  <div class="hint">依非訟事件法 §194，由票據付款地之法院管轄；未載付款地者以發票地定之。</div>
+  ${partyBlock('note_cred','聲請人（執票人）')}
+  ${partyBlock('note_debt','相對人（發票人）')}
+  <fieldset><legend>本票內容</legend>
+    <div class="row2">
+      <div><label class="f">本票號碼</label><input id="note_no" placeholder="如：TH0000001"></div>
+      <div><label class="f">票面金額（新臺幣元）</label><input id="note_amount" type="number" placeholder="200000"></div>
+    </div>
+    <div class="row2">
+      <div><label class="f">發票日</label><input id="note_issue" type="date"></div>
+      <div><label class="f">到期日（未載可留空）</label><input id="note_due" type="date"></div>
+    </div>
+    <div class="row2">
+      <div><label class="f">付款地（選填）</label><input id="note_place" placeholder="如：臺北市"></div>
+      <div><label class="f">利息年利率（%）</label><input id="note_rate" type="number" value="6" step="0.01"></div>
+    </div>
+    <label class="f">利息起算日</label><input id="note_ratefrom" type="date">
+    <div class="hint">未到期本票依票載到期日；見票即付者自提示日或發票日起算，年息上限 6%。</div>
+  </fieldset>
+`;
+
+/* =========================================================
+   3. 離婚協議書 表單
+========================================================= */
+$('form-divorce').innerHTML=`
+  <fieldset><legend>男方</legend>
+    <div class="row2">
+      <div><label class="f">姓名</label><input id="dv_m_name"></div>
+      <div><label class="f">出生日期</label><input id="dv_m_birth" type="date"></div>
+    </div>
+    <div class="row2">
+      <div><label class="f">身分證統一編號</label><input id="dv_m_id"></div>
+      <div><label class="f">聯絡電話</label><input id="dv_m_tel"></div>
+    </div>
+    <label class="f">戶籍地址</label><input id="dv_m_addr">
+  </fieldset>
+  <fieldset><legend>女方</legend>
+    <div class="row2">
+      <div><label class="f">姓名</label><input id="dv_f_name"></div>
+      <div><label class="f">出生日期</label><input id="dv_f_birth" type="date"></div>
+    </div>
+    <div class="row2">
+      <div><label class="f">身分證統一編號</label><input id="dv_f_id"></div>
+      <div><label class="f">聯絡電話</label><input id="dv_f_tel"></div>
+    </div>
+    <label class="f">戶籍地址</label><input id="dv_f_addr">
+  </fieldset>
+  <label class="f">結婚日期</label><input id="dv_marry" type="date">
+  <fieldset><legend>未成年子女親權約定</legend>
+    <div id="dv_children"></div>
+    <button class="addbtn" type="button" onclick="addChild()">＋ 新增子女</button>
+    <div class="hint">無未成年子女可不填。</div>
+  </fieldset>
+  <label class="f">財產分配約定</label>
+  <textarea id="dv_property" placeholder="例：雙方名下財產各自保有，婚後共同存款○元由雙方均分…"></textarea>
+  <label class="f">贍養費 / 補償（選填）</label>
+  <textarea id="dv_alimony" placeholder="例：男方應給付女方贍養費新臺幣○元，於離婚登記之日一次給付…"></textarea>
+  <label class="f">其他約定事項（選填）</label>
+  <textarea id="dv_other" placeholder="例：雙方不得互相騷擾；債務各自負擔…"></textarea>
+  <label class="f">離婚（簽署）日期</label><input id="dv_date" type="date">
+  <fieldset><legend>證人（民法 §1050 須二人以上）</legend>
+    <div class="row2">
+      <div><label class="f">證人一 姓名</label><input id="dv_w1_name"></div>
+      <div><label class="f">證人一 身分證</label><input id="dv_w1_id"></div>
+    </div>
+    <label class="f">證人一 地址</label><input id="dv_w1_addr">
+    <div class="row2" style="margin-top:8px">
+      <div><label class="f">證人二 姓名</label><input id="dv_w2_name"></div>
+      <div><label class="f">證人二 身分證</label><input id="dv_w2_id"></div>
+    </div>
+    <label class="f">證人二 地址</label><input id="dv_w2_addr">
+  </fieldset>
+`;
+var childN=0;
+function addChild(){
+  childN++;
+  var d=document.createElement('div');d.className='childcard';d.id='child_'+childN;
+  d.innerHTML=`<button class="rmbtn" type="button" style="position:absolute;top:8px;right:8px" onclick="this.parentNode.remove();build()">移除</button>
+    <div class="row2">
+      <div><label class="f">子女姓名</label><input class="c_name"></div>
+      <div><label class="f">出生日期</label><input class="c_birth" type="date"></div>
+    </div>
+    <div class="row2">
+      <div><label class="f">親權（監護）由</label><select class="c_custody"><option>男方</option><option>女方</option><option>雙方共同</option></select></div>
+      <div><label class="f">扶養費（每月新臺幣元）</label><input class="c_support" placeholder="如：15000"></div>
+    </div>
+    <label class="f">會面交往（探視）方式</label><input class="c_visit" placeholder="如：未任親權方每月第二、四週週六接回同住一日">`;
+  $('dv_children').appendChild(d);
+}
+addChild();
+
+/* =========================================================
+   切換文件
+========================================================= */
+function switchDoc(d){
+  DOC=d;
+  document.querySelectorAll('.navitem').forEach(function(t){t.classList.toggle('active',t.dataset.doc===d)});
+  ['pay','note','divorce'].forEach(function(k){$('form-'+k).style.display=(k===d)?'':'none'});
+  var meta=DOCS.find(function(x){return x.k===d});
+  $('disclaimer').textContent=DISC[d];
+  $('formTitle').textContent=meta.name;
+  $('mtitle').textContent=meta.name;
+  build();
+}
+
+/* =========================================================
+   即時預覽：任何輸入即更新
+========================================================= */
+$('forms').addEventListener('input',build);
+$('forms').addEventListener('change',build);
+
+/* =========================================================
+   文件模型
+========================================================= */
+function model(){
+  if(DOC==='pay') return modelPay();
+  if(DOC==='note') return modelNote();
+  return modelDivorce();
+}
+function checkedAttach(){
+  var arr=[];document.querySelectorAll('#pay_attach input:checked').forEach(function(c){arr.push(c.value)});
+  var o=val('pay_attach_other');if(o)o.split(/[、,，]/).forEach(function(x){if(x.trim())arr.push(x.trim())});
+  return arr;
+}
+function partyRow(prefix){
+  return {name:val(prefix+'_name'),id:val(prefix+'_id'),addr:val(prefix+'_addr'),tel:val(prefix+'_tel'),email:val(prefix+'_email')};
+}
+function modelPay(){
+  var cr=partyRow('pay_cred'),db=partyRow('pay_debt');
+  var amt=val('pay_amount'),rate=val('pay_rate'),rf=val('pay_ratefrom');
+  var reason=val('pay_reason'),counter=val('pay_counter'),penalty=val('pay_penalty');
+  var lr=val('pay_credlr_name'),lrRel=val('pay_credlr_rel');
+  var atts=checkedAttach();
+  var parties=[['債權人',cr.name,cr.id,cr.addr,cr.tel]];
+  if(lr) parties.push([lrRel||'法定代理人',lr,'','','']);
+  parties.push(['債務人',db.name,db.id,db.addr,db.tel]);
+  var body=[];
+  var claim='一、請准對相對人（債務人）發支付命令，命其向聲請人（債權人）給付新臺幣 '+(money(amt)||'　　　')+' 元';
+  if(rate&&Number(rate)>0){claim+='，及自 '+(rf?rocDate(rf).replace('中華民國 ','民國'):'　　年　月　日')+' 起至清償日止，按年息 '+rate+'％ 計算之利息'}
+  if(penalty){claim+='，'+penalty}
+  claim+='。';
+  body.push({t:'sec',text:claim});
+  body.push({t:'sec',text:'二、督促程序費用新臺幣 500 元由相對人負擔。'});
+  body.push({t:'sec',text:'三、原因事實：'});
+  (reason||'（請敘明借貸／買賣／債權發生之時間、金額及催討經過，並釋明之。）').split(/\n/).forEach(function(l){if(l.trim())body.push({t:'p',text:l.trim()})});
+  if(counter) body.push({t:'p',text:'對待給付已履行情形：'+counter});
+  body.push({t:'sec',text:'四、應發支付命令之陳述：聲請人之請求業已屆期，債務人迄未給付，爰依民事訴訟法第508條、第511條規定聲請發支付命令，如上所述。'});
+  return {title:'民事支付命令聲請狀',court:val('pay_court')||'臺灣○○地方法院',parties:parties,body:body,attachments:atts,signer:cr.name,footerCourt:(val('pay_court')||'臺灣○○地方法院')};
+}
+function modelNote(){
+  var cr=partyRow('note_cred'),db=partyRow('note_debt');
+  var no=val('note_no'),amt=val('note_amount'),iss=val('note_issue'),due=val('note_due'),place=val('note_place'),rate=val('note_rate'),rf=val('note_ratefrom');
+  var parties=[['聲請人',cr.name,cr.id,cr.addr,cr.tel],['相對人',db.name,db.id,db.addr,db.tel]];
+  var body=[];
+  body.push({t:'sec',text:'一、聲請意旨：'});
+  body.push({t:'p',text:'相對人（發票人）簽發如附表所示之本票乙紙予聲請人，詎屆期提示未獲付款，爰依票據法第123條規定，聲請鈞院裁定准許就本票金額及利息對相對人為強制執行。'});
+  body.push({t:'sec',text:'二、本票內容如下：'});
+  body.push({t:'table2',rows:[
+    ['本票號碼',no||'　'],
+    ['票面金額','新臺幣 '+(money(amt)||'　　　')+' 元'],
+    ['發票日',iss?rocDate(iss).replace('中華民國 ','民國'):'　'],
+    ['到期日',due?rocDate(due).replace('中華民國 ','民國'):'未記載（見票即付）'],
+    ['付款地',place||'　'],
+    ['利息','自 '+(rf?rocDate(rf).replace('中華民國 ','民國'):'　')+' 起至清償日止，按年息 '+(rate||'6')+'％ 計算']
+  ]});
+  body.push({t:'sec',text:'三、聲請人為執票人，相對人為發票人，兩造間權利義務明確；謹提出本票原本乙紙（正本到院時當庭核閱後請發還），懇請鈞院鑒核，賜准如聲請意旨之裁定。'});
+  return {title:'民事本票裁定聲請狀',court:val('note_court')||'臺灣○○地方法院',parties:parties,body:body,attachments:['本票原本乙紙及影本乙份'],signer:cr.name,footerCourt:(val('note_court')||'臺灣○○地方法院')};
+}
+function modelDivorce(){
+  var m={name:val('dv_m_name'),birth:val('dv_m_birth'),id:val('dv_m_id'),tel:val('dv_m_tel'),addr:val('dv_m_addr')};
+  var f={name:val('dv_f_name'),birth:val('dv_f_birth'),id:val('dv_f_id'),tel:val('dv_f_tel'),addr:val('dv_f_addr')};
+  var kids=[];
+  document.querySelectorAll('#dv_children .childcard').forEach(function(c){
+    var n=c.querySelector('.c_name').value.trim();if(!n)return;
+    kids.push({name:n,birth:c.querySelector('.c_birth').value,custody:c.querySelector('.c_custody').value,support:c.querySelector('.c_support').value.trim(),visit:c.querySelector('.c_visit').value.trim()});
+  });
+  return {kind:'divorce',title:'離婚協議書',male:m,female:f,marry:val('dv_marry'),kids:kids,
+    property:val('dv_property'),alimony:val('dv_alimony'),other:val('dv_other'),date:val('dv_date'),
+    w1:{name:val('dv_w1_name'),id:val('dv_w1_id'),addr:val('dv_w1_addr')},
+    w2:{name:val('dv_w2_name'),id:val('dv_w2_id'),addr:val('dv_w2_addr')}};
+}
+
+/* =========================================================
+   預覽 HTML
+========================================================= */
+function build(){
+  var mo=model();
+  $('preview').innerHTML=(mo.kind==='divorce')?htmlDivorce(mo):htmlPetition(mo);
+}
+function htmlPetition(mo){
+  var h='<h1>'+esc(mo.title)+'</h1>';
+  h+='<table><thead><tr><th style="width:14%">稱謂</th><th style="width:20%">姓名</th><th style="width:22%">身分證統一編號</th><th>住居所及聯絡電話</th></tr></thead><tbody>';
+  mo.parties.forEach(function(p){
+    var contact=esc(p[3]||'');if(p[4])contact+=(contact?'　電話：':'電話：')+esc(p[4]);
+    h+='<tr><td>'+esc(p[0])+'</td><td>'+esc(p[1])+'</td><td>'+esc(p[2]||'')+'</td><td>'+contact+'</td></tr>';
+  });
+  h+='</tbody></table>';
+  h+='<div class="p center" style="text-indent:0;font-weight:700;margin:6px 0 12px">為聲請事件，依法提出聲請事：</div>';
+  mo.body.forEach(function(b){
+    if(b.t==='sec')h+='<div class="sec">'+esc(b.text)+'</div>';
+    else if(b.t==='p')h+='<div class="p">'+nl2br(b.text)+'</div>';
+    else if(b.t==='table2'){h+='<table>';b.rows.forEach(function(r){h+='<tr><td style="width:26%;font-weight:700">'+esc(r[0])+'</td><td>'+esc(r[1])+'</td></tr>'});h+='</table>';}
+  });
+  if(mo.attachments&&mo.attachments.length){
+    h+='<div class="sec">附　　件：</div>';
+    mo.attachments.forEach(function(a,i){h+='<div class="p">證物'+(i+1)+'：'+esc(a)+'　一份</div>'});
+  }
+  h+='<div class="sec" style="margin-top:18px">此　　致</div>';
+  h+='<div class="p" style="text-indent:1em;font-weight:700">'+esc(mo.footerCourt)+'　公鑒</div>';
+  h+='<div style="height:26px"></div>';
+  h+='<div class="right">具狀人（'+(mo.title.indexOf('支付')>=0?'債權人':'聲請人')+'）：'+esc(mo.signer||'　　　　')+'　（簽名或蓋章）</div>';
+  h+='<div class="right" style="margin-top:8px">撰狀人：　　　　　　（簽名或蓋章）</div>';
+  h+='<div class="center" style="margin-top:22px">'+rocDate('')+'</div>';
+  return h;
+}
+function mgn(d){return d?('民國'+(parseInt(d.split('-')[0],10)-1911)+'年'+parseInt(d.split('-')[1],10)+'月'+parseInt(d.split('-')[2],10)+'日'):'　年　月　日'}
+function htmlDivorce(mo){
+  var m=mo.male,f=mo.female;
+  var h='<h1>'+esc(mo.title)+'</h1>';
+  h+='<div class="p" style="text-indent:0">立協議書人　男方：<b>'+esc(m.name||'　　　')+'</b>（'+mgn(m.birth)+'生，身分證統一編號：'+esc(m.id||'　')+'）</div>';
+  h+='<div class="p" style="text-indent:0;margin-bottom:10px">　　　　　　女方：<b>'+esc(f.name||'　　　')+'</b>（'+mgn(f.birth)+'生，身分證統一編號：'+esc(f.id||'　')+'）</div>';
+  h+='<div class="p">緣男女雙方於'+ (mo.marry?mgn(mo.marry):'民國　年　月　日') +'結婚，現因雙方個性不合，難偕白首，經雙方同意自願離婚，並就相關事項達成協議如下，共同遵守：</div>';
+  var n=0;
+  h+='<div class="sec">第 '+(++n)+' 條（兩願離婚）</div><div class="p">雙方同意自願離婚，並依民法第1050條規定，於本協議書簽署後共同至戶政機關辦理離婚登記。</div>';
+  h+='<div class="sec">第 '+(++n)+' 條（未成年子女之親權及扶養）</div>';
+  if(mo.kids.length){
+    mo.kids.forEach(function(k,i){
+      var by=k.custody==='雙方共同'?'由雙方共同任之':'由'+k.custody+'任之';
+      var line='子女 '+k.name+'（'+mgn(k.birth)+'生）之親權（權利義務之行使或負擔）'+by+'。';
+      if(k.support)line+='他方應自離婚之日起，於每月5日前給付扶養費新臺幣'+money(k.support)+'元，至該子女成年之日止。';
+      if(k.visit)line+='未任親權之一方得依下列方式會面交往：'+k.visit+'。';
+      h+='<div class="p">'+(i+1)+'. '+esc(line)+'</div>';
+    });
+  }else h+='<div class="p">雙方無未成年子女，本條不適用。</div>';
+  h+='<div class="sec">第 '+(++n)+' 條（財產分配）</div><div class="p">'+ (mo.property?nl2br(mo.property):'雙方名下財產各自保有，互不請求剩餘財產分配。') +'</div>';
+  if(mo.alimony){h+='<div class="sec">第 '+(++n)+' 條（贍養費 / 補償）</div><div class="p">'+nl2br(mo.alimony)+'</div>';}
+  if(mo.other){h+='<div class="sec">第 '+(++n)+' 條（其他約定）</div><div class="p">'+nl2br(mo.other)+'</div>';}
+  h+='<div class="sec">第 '+(++n)+' 條（本協議之效力）</div><div class="p">本協議書一式三份，雙方及戶政機關各執一份為憑；未盡事宜依民法及相關法令辦理。</div>';
+  h+='<div style="height:16px"></div>';
+  h+='<table><tr><td style="width:50%"><b>立協議書人（男方）</b><br>簽名：<br>身分證統一編號：'+esc(m.id||'')+'<br>戶籍地址：'+esc(m.addr||'')+'</td>'+
+     '<td><b>立協議書人（女方）</b><br>簽名：<br>身分證統一編號：'+esc(f.id||'')+'<br>戶籍地址：'+esc(f.addr||'')+'</td></tr>';
+  h+='<tr><td><b>證人一</b><br>簽名：<br>身分證統一編號：'+esc(mo.w1.id||'')+'<br>地址：'+esc(mo.w1.addr||'')+'</td>'+
+     '<td><b>證人二</b><br>簽名：<br>身分證統一編號：'+esc(mo.w2.id||'')+'<br>地址：'+esc(mo.w2.addr||'')+'</td></tr></table>';
+  h+='<div class="center" style="margin-top:20px">'+ (mo.date?rocDate(mo.date):rocDate('')) +'</div>';
+  return h;
+}
+
+/* =========================================================
+   Word (.docx)
+========================================================= */
+function saveBlob(blob,name){var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove()},1000);}
+var KAI="標楷體";
+function P(o){return new docx.Paragraph(o)}
+function R(text,o){o=o||{};return new docx.TextRun(Object.assign({text:text,font:KAI,size:o.size||28,bold:!!o.bold},o))}
+function titleP(t){return P({alignment:docx.AlignmentType.CENTER,spacing:{after:240},children:[new docx.TextRun({text:t,font:KAI,size:40,bold:true})]})}
+function secP(t){return P({spacing:{before:120,after:40},children:[R(t,{bold:true})]})}
+function bodyP(t){return P({spacing:{after:40},indent:{firstLine:480},children:[R(t)]})}
+function rightP(t){return P({alignment:docx.AlignmentType.RIGHT,spacing:{after:60},children:[R(t)]})}
+function centerP(t,b){return P({alignment:docx.AlignmentType.CENTER,spacing:{before:120},children:[R(t,{bold:!!b})]})}
+function cell(text,w,b){return new docx.TableCell({width:{size:w,type:docx.WidthType.PERCENTAGE},children:[P({children:[R(text,{size:24,bold:!!b})]})]});}
+function partyTableDocx(parties){
+  var rows=[new docx.TableRow({children:[cell('稱謂',14,true),cell('姓名',20,true),cell('身分證統一編號',24,true),cell('住居所及聯絡電話',42,true)]})];
+  parties.forEach(function(p){var contact=(p[3]||'')+(p[4]?'　電話：'+p[4]:'');rows.push(new docx.TableRow({children:[cell(p[0],14),cell(p[1],20),cell(p[2]||'',24),cell(contact,42)]}));});
+  return new docx.Table({width:{size:100,type:docx.WidthType.PERCENTAGE},rows:rows});
+}
+function kvTableDocx(rows){return new docx.Table({width:{size:100,type:docx.WidthType.PERCENTAGE},rows:rows.map(function(r){return new docx.TableRow({children:[cell(r[0],26,true),cell(r[1],74)]})})});}
+function docxPetition(mo){
+  var ch=[titleP(mo.title),partyTableDocx(mo.parties),P({alignment:docx.AlignmentType.CENTER,spacing:{before:120,after:120},children:[R('為聲請事件，依法提出聲請事：',{bold:true})]})];
+  mo.body.forEach(function(b){
+    if(b.t==='sec')ch.push(secP(b.text));
+    else if(b.t==='p')b.text.split('\n').forEach(function(l){if(l.trim())ch.push(bodyP(l.trim()))});
+    else if(b.t==='table2')ch.push(kvTableDocx(b.rows));
+  });
+  if(mo.attachments&&mo.attachments.length){ch.push(secP('附　　件：'));mo.attachments.forEach(function(a,i){ch.push(bodyP('證物'+(i+1)+'：'+a+'　一份'))});}
+  ch.push(secP('此　　致'));
+  ch.push(P({spacing:{after:200},indent:{firstLine:240},children:[R(mo.footerCourt+'　公鑒',{bold:true})]}));
+  ch.push(rightP('具狀人（'+(mo.title.indexOf('支付')>=0?'債權人':'聲請人')+'）：'+(mo.signer||'')+'　（簽名或蓋章）'));
+  ch.push(rightP('撰狀人：　　　　　　（簽名或蓋章）'));
+  ch.push(centerP(rocDate('')));
+  return ch;
+}
+function docxDivorce(mo){
+  var m=mo.male,f=mo.female;
+  var ch=[titleP(mo.title),
+    P({spacing:{after:40},children:[R('立協議書人　男方：'+(m.name||'')+'（'+mgn(m.birth)+'生，身分證統一編號：'+(m.id||'')+'）')]}),
+    P({spacing:{after:120},children:[R('　　　　　　女方：'+(f.name||'')+'（'+mgn(f.birth)+'生，身分證統一編號：'+(f.id||'')+'）')]}),
+    bodyP('緣男女雙方於'+mgn(mo.marry)+'結婚，現因雙方個性不合，難偕白首，經雙方同意自願離婚，並就相關事項達成協議如下，共同遵守：')];
+  var n=0;
+  ch.push(secP('第 '+(++n)+' 條（兩願離婚）'));ch.push(bodyP('雙方同意自願離婚，並依民法第1050條規定，於本協議書簽署後共同至戶政機關辦理離婚登記。'));
+  ch.push(secP('第 '+(++n)+' 條（未成年子女之親權及扶養）'));
+  if(mo.kids.length){mo.kids.forEach(function(k,i){
+    var by=k.custody==='雙方共同'?'由雙方共同任之':'由'+k.custody+'任之';
+    var line='子女 '+k.name+'（'+mgn(k.birth)+'生）之親權（權利義務之行使或負擔）'+by+'。';
+    if(k.support)line+='他方應自離婚之日起，於每月5日前給付扶養費新臺幣'+money(k.support)+'元，至該子女成年之日止。';
+    if(k.visit)line+='未任親權之一方得依下列方式會面交往：'+k.visit+'。';
+    ch.push(bodyP((i+1)+'. '+line));});}
+  else ch.push(bodyP('雙方無未成年子女，本條不適用。'));
+  ch.push(secP('第 '+(++n)+' 條（財產分配）'));ch.push(bodyP(mo.property||'雙方名下財產各自保有，互不請求剩餘財產分配。'));
+  if(mo.alimony){ch.push(secP('第 '+(++n)+' 條（贍養費 / 補償）'));ch.push(bodyP(mo.alimony));}
+  if(mo.other){ch.push(secP('第 '+(++n)+' 條（其他約定）'));ch.push(bodyP(mo.other));}
+  ch.push(secP('第 '+(++n)+' 條（本協議之效力）'));ch.push(bodyP('本協議書一式三份，雙方及戶政機關各執一份為憑；未盡事宜依民法及相關法令辦理。'));
+  ch.push(P({spacing:{before:200}}));
+  ch.push(kvTableDocx([
+    ['立協議書人（男方）','簽名：　　　　　　身分證統一編號：'+(m.id||'')+'　戶籍地址：'+(m.addr||'')],
+    ['立協議書人（女方）','簽名：　　　　　　身分證統一編號：'+(f.id||'')+'　戶籍地址：'+(f.addr||'')],
+    ['證人一','簽名：　　　　　　身分證統一編號：'+(mo.w1.id||'')+'　地址：'+(mo.w1.addr||'')],
+    ['證人二','簽名：　　　　　　身分證統一編號：'+(mo.w2.id||'')+'　地址：'+(mo.w2.addr||'')]
+  ]));
+  ch.push(centerP(mo.date?rocDate(mo.date):rocDate('')));
+  return ch;
+}
+function fileName(){var map={pay:'支付命令聲請狀',note:'本票裁定聲請狀',divorce:'離婚協議書'};return map[DOC]+'_'+new Date().toISOString().slice(0,10);}
+function downloadWord(){
+  var mo=model();var children=(mo.kind==='divorce')?docxDivorce(mo):docxPetition(mo);
+  var doc=new docx.Document({styles:{default:{document:{run:{font:KAI,size:28}}}},sections:[{properties:{page:{margin:{top:1440,bottom:1440,left:1440,right:1440}}},children:children}]});
+  docx.Packer.toBlob(doc).then(function(blob){saveBlob(blob,fileName()+'.docx');toast('Word 檔已下載')}).catch(function(e){toast('產生 Word 失敗：'+e.message)});
+}
+function downloadPDF(){
+  var node=$('preview').cloneNode(true);
+  node.style.width='720px';node.style.padding='40px';node.style.background='#fff';node.style.boxShadow='none';
+  var wrap=document.createElement('div');wrap.style.position='fixed';wrap.style.left='-9999px';wrap.appendChild(node);document.body.appendChild(wrap);
+  html2pdf().set({margin:[10,10,10,10],filename:fileName()+'.pdf',image:{type:'jpeg',quality:0.98},html2canvas:{scale:2,useCORS:true},jsPDF:{unit:'mm',format:'a4',orientation:'portrait'},pagebreak:{mode:['css','legacy']}}).from(node).save().then(function(){wrap.remove();toast('PDF 已下載')}).catch(function(e){wrap.remove();toast('產生 PDF 失敗：'+e.message)});
+}
+
+/* init */
+$('disclaimer').textContent=DISC.pay;
+build();
+</script>
+</body>
+</html>
