@@ -87,6 +87,8 @@
   .page table{width:100%;border-collapse:collapse;margin:12px 0 18px}
   .page td,.page th{border:1px solid #000;padding:7px 8px;font-size:13.5px;vertical-align:top;line-height:1.55}
   .page th{font-weight:700;text-align:center;background:#fafafa}
+  .page .party{font-weight:700;margin:9px 0 2px}
+  .page .pf{padding-left:2.6em;margin:1px 0;font-size:15px}
   .page .sec{font-weight:700;margin:13px 0 3px}
   .page .p{text-indent:2em;margin:5px 0;text-align:justify}
   .page .right{text-align:right}
@@ -224,13 +226,14 @@ function partyBlock(prefix,label){
   return `<fieldset><legend>${label}</legend>
     <div class="row2">
       <div><label class="f">姓名 / 名稱</label><input id="${prefix}_name" placeholder="王大明"></div>
-      <div><label class="f">身分證統一編號 / 統編</label><input id="${prefix}_id" placeholder="A123456789"></div>
+      <div><label class="f">身分證字號 / 統編</label><input id="${prefix}_id" placeholder="A123456789"></div>
     </div>
-    <label class="f">住居所 / 事務所地址</label><input id="${prefix}_addr" placeholder="臺北市中正區○○路○段○號○樓">
+    <label class="f">聯絡地址</label><input id="${prefix}_addr" placeholder="臺北市中正區○○路○段○號○樓">
     <div class="row2">
-      <div><label class="f">聯絡電話</label><input id="${prefix}_tel" placeholder="0912-345-678"></div>
-      <div><label class="f">電子郵件（選填）</label><input id="${prefix}_email" placeholder="選填"></div>
+      <div><label class="f">電話</label><input id="${prefix}_tel" placeholder="0912-345-678"></div>
+      <div><label class="f">傳真（選填）</label><input id="${prefix}_fax" placeholder="選填"></div>
     </div>
+    <label class="f">電子信箱（選填）</label><input id="${prefix}_email" placeholder="選填">
   </fieldset>`;
 }
 
@@ -255,10 +258,7 @@ $('form-pay').innerHTML=`
       <div><label class="f">請求金額（新臺幣元）</label><input id="pay_amount" type="number" placeholder="150000"></div>
       <div><label class="f">利息年利率（%）</label><input id="pay_rate" type="number" value="5" step="0.01"></div>
     </div>
-    <div class="row2">
-      <div><label class="f">利息起算日</label><input id="pay_ratefrom" type="date"></div>
-      <div><label class="f">違約金 / 其他（選填）</label><input id="pay_penalty" placeholder="如：另按○計算之違約金"></div>
-    </div>
+    <label class="f">利息起算日</label><input id="pay_ratefrom" type="date">
   </fieldset>
   <label class="f">請求之原因事實（民訴 §511，並應釋明）</label>
   <textarea id="pay_reason" placeholder="例：相對人於民國113年3月1日向聲請人借款新臺幣15萬元，約定於113年6月1日清償，屆期迭經催討均未給付…"></textarea>
@@ -411,34 +411,31 @@ function checkedAttach(){
   return arr;
 }
 function partyRow(prefix){
-  return {name:val(prefix+'_name'),id:val(prefix+'_id'),addr:val(prefix+'_addr'),tel:val(prefix+'_tel'),email:val(prefix+'_email')};
+  return {name:val(prefix+'_name'),id:val(prefix+'_id'),addr:val(prefix+'_addr'),tel:val(prefix+'_tel'),fax:val(prefix+'_fax'),email:val(prefix+'_email')};
 }
 function modelPay(){
   var cr=partyRow('pay_cred'),db=partyRow('pay_debt');
   var amt=val('pay_amount'),rate=val('pay_rate'),rf=val('pay_ratefrom');
-  var reason=val('pay_reason'),counter=val('pay_counter'),penalty=val('pay_penalty');
+  var reason=val('pay_reason'),counter=val('pay_counter');
   var lr=val('pay_credlr_name'),lrRel=val('pay_credlr_rel');
   var atts=checkedAttach();
-  var parties=[['債權人',cr.name,cr.id,cr.addr,cr.tel]];
-  if(lr) parties.push([lrRel||'法定代理人',lr,'','','']);
-  parties.push(['債務人',db.name,db.id,db.addr,db.tel]);
+  var parties=[Object.assign({role:'債權人'},cr)];
+  if(lr) parties.push({role:lrRel||'法定代理人',name:lr,onlyName:true});
+  parties.push(Object.assign({role:'債務人'},db));
   var body=[];
-  var claim='一、請准對相對人（債務人）發支付命令，命其向聲請人（債權人）給付新臺幣 '+(money(amt)||'　　　')+' 元';
+  var claim='一、請求之標的並其數量：請准對相對人（債務人）發支付命令，命其向聲請人（債權人）給付新臺幣 '+(money(amt)||'　　　')+' 元';
   if(rate&&Number(rate)>0){claim+='，及自 '+(rf?rocDate(rf).replace('中華民國 ','民國'):'　　年　月　日')+' 起至清償日止，按年息 '+rate+'％ 計算之利息'}
-  if(penalty){claim+='，'+penalty}
   claim+='。';
   body.push({t:'sec',text:claim});
-  body.push({t:'sec',text:'二、督促程序費用新臺幣 500 元由相對人負擔。'});
-  body.push({t:'sec',text:'三、原因事實：'});
+  body.push({t:'sec',text:'二、請求之原因及事實：'});
   (reason||'（請敘明借貸／買賣／債權發生之時間、金額及催討經過，並釋明之。）').split(/\n/).forEach(function(l){if(l.trim())body.push({t:'p',text:l.trim()})});
   if(counter) body.push({t:'p',text:'對待給付已履行情形：'+counter});
-  body.push({t:'sec',text:'四、應發支付命令之陳述：聲請人之請求業已屆期，債務人迄未給付，爰依民事訴訟法第508條、第511條規定聲請發支付命令，如上所述。'});
   return {title:'民事支付命令聲請狀',docType:'pay',eventText:'為聲請核發支付命令事：',amountLabel:'訴訟標的金額或價額',claimAmount:money(amt),signerRole:'債權人',court:val('pay_court')||'臺灣○○地方法院',parties:parties,body:body,attachments:atts,signer:cr.name,footerCourt:(val('pay_court')||'臺灣○○地方法院')};
 }
 function modelNote(){
   var cr=partyRow('note_cred'),db=partyRow('note_debt');
   var no=val('note_no'),amt=val('note_amount'),iss=val('note_issue'),due=val('note_due'),place=val('note_place'),rate=val('note_rate'),rf=val('note_ratefrom');
-  var parties=[['聲請人',cr.name,cr.id,cr.addr,cr.tel],['相對人',db.name,db.id,db.addr,db.tel]];
+  var parties=[Object.assign({role:'聲請人'},cr),Object.assign({role:'相對人'},db)];
   var body=[];
   body.push({t:'sec',text:'一、聲請意旨：'});
   body.push({t:'p',text:'相對人（發票人）簽發如附表所示之本票乙紙予聲請人，詎屆期提示未獲付款，爰依票據法第123條規定，聲請鈞院裁定准許就本票金額及利息對相對人為強制執行。'});
@@ -495,15 +492,21 @@ function htmlPetition(mo){
   var h='<h1>'+esc(mo.title)+'</h1>';
   h+='<div class="meta">案　　號：　　　　年度　　　字第　　　　號　　承辦股別：　　　</div>';
   h+='<div class="meta" style="margin-bottom:6px">'+esc(mo.amountLabel)+'：新臺幣 '+(mo.claimAmount||'　　　　')+' 元</div>';
-  h+='<table><thead><tr>'+
-     '<th style="width:12%">稱謂</th><th style="width:16%">姓名或名稱</th>'+
-     '<th style="width:20%">身分證統一編號</th><th>住居所</th><th style="width:16%">電話</th>'+
-     '</tr></thead><tbody>';
+  h+='<div style="height:6px"></div>';
   mo.parties.forEach(function(p){
-    h+='<tr><td style="text-align:center">'+esc(p[0])+'</td><td>'+esc(p[1])+'</td><td>'+esc(p[2]||'')+'</td><td>'+esc(p[3]||'')+'</td><td>'+esc(p[4]||'')+'</td></tr>';
+    if(p.onlyName){
+      h+='<div class="party">'+esc(p.role)+'：'+esc(p.name||'')+'</div>';
+    }else{
+      h+='<div class="party">'+esc(p.role)+'：</div>';
+      h+='<div class="pf">姓名：'+esc(p.name||'')+'</div>';
+      h+='<div class="pf">身分證字號：'+esc(p.id||'')+'</div>';
+      h+='<div class="pf">聯絡地址：'+esc(p.addr||'')+'</div>';
+      h+='<div class="pf">電話：'+esc(p.tel||'')+'</div>';
+      h+='<div class="pf">傳真：'+esc(p.fax||'')+'</div>';
+      h+='<div class="pf">電子信箱：'+esc(p.email||'')+'</div>';
+    }
   });
-  h+='</tbody></table>';
-  h+='<div class="sec" style="text-indent:0">'+esc(mo.eventText)+'</div>';
+  h+='<div class="sec" style="text-indent:0;margin-top:12px">'+esc(mo.eventText)+'</div>';
   mo.body.forEach(function(b){
     if(b.t==='sec')h+='<div class="sec">'+esc(b.text)+'</div>';
     else if(b.t==='p')h+='<div class="p">'+nl2br(b.text)+'</div>';
@@ -575,9 +578,17 @@ function kvTableDocx(rows){return new docx.Table({width:{size:100,type:docx.Widt
 function docxPetition(mo){
   var ch=[titleP(mo.title),
     P({spacing:{after:20},children:[R('案　　號：　　　　年度　　　字第　　　　號　　承辦股別：　　　',{size:22})]}),
-    P({spacing:{after:120},children:[R(mo.amountLabel+'：新臺幣 '+(mo.claimAmount||'　　　　')+' 元',{size:22})]}),
-    partyTableDocx(mo.parties),
-    P({spacing:{before:120,after:80},children:[R(mo.eventText,{bold:true})]})];
+    P({spacing:{after:60},children:[R(mo.amountLabel+'：新臺幣 '+(mo.claimAmount||'　　　　')+' 元',{size:22})]})];
+  mo.parties.forEach(function(p){
+    if(p.onlyName){ch.push(P({spacing:{before:80,after:20},children:[R(p.role+'：'+(p.name||''),{bold:true})]}));}
+    else{
+      ch.push(P({spacing:{before:100,after:0},children:[R(p.role+'：',{bold:true})]}));
+      [['姓名',p.name],['身分證字號',p.id],['聯絡地址',p.addr],['電話',p.tel],['傳真',p.fax],['電子信箱',p.email]].forEach(function(kv){
+        ch.push(P({spacing:{after:0},indent:{left:600},children:[R(kv[0]+'：'+(kv[1]||''))]}));
+      });
+    }
+  });
+  ch.push(P({spacing:{before:160,after:80},children:[R(mo.eventText,{bold:true})]}));
   mo.body.forEach(function(b){
     if(b.t==='sec')ch.push(secP(b.text));
     else if(b.t==='p')b.text.split('\n').forEach(function(l){if(l.trim())ch.push(bodyP(l.trim()))});
