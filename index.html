@@ -76,15 +76,21 @@
   button.ghost{background:#fff;color:var(--brand);border:1px solid var(--brand);border-radius:9px;padding:11px 18px;font-size:14px;font-weight:700;cursor:pointer}
   button.ghost:hover{background:var(--accent)}
 
-  /* ---------- preview ---------- */
-  .doc-preview{background:#fff;color:#111;font-family:"DFKai-SB","BiauKai","KaiTi","標楷體","Noto Serif TC",serif;font-size:15px;line-height:1.9;padding:34px 36px;border:1px solid var(--line);border-radius:6px;min-height:420px;box-shadow:0 2px 12px rgba(20,40,80,.06)}
-  .doc-preview h1{text-align:center;font-size:21px;letter-spacing:8px;margin:0 0 20px;font-weight:700}
-  .doc-preview table{width:100%;border-collapse:collapse;margin:8px 0 14px}
-  .doc-preview td,.doc-preview th{border:1px solid #333;padding:6px 8px;font-size:14px;vertical-align:top}
-  .doc-preview .sec{font-weight:700;margin:14px 0 2px}
-  .doc-preview .p{text-indent:2em;margin:4px 0}
-  .doc-preview .right{text-align:right}
-  .doc-preview .center{text-align:center}
+  /* ---------- preview (A4 sheet) ---------- */
+  .doc-preview{background:transparent;padding:0;overflow:auto}
+  #pageBox{margin:0 auto}
+  .page{background:#fff;color:#111;font-family:"DFKai-SB","BiauKai","KaiTi","標楷體","Noto Serif TC",serif;
+    width:794px;min-height:1123px;padding:76px 68px;box-shadow:0 3px 20px rgba(20,40,80,.16);
+    transform-origin:top left;line-height:2;font-size:16px;letter-spacing:.3px}
+  .page h1{text-align:center;font-size:25px;letter-spacing:12px;margin:0 0 22px;font-weight:700}
+  .page .meta{font-size:14.5px;margin:2px 0;letter-spacing:.5px}
+  .page table{width:100%;border-collapse:collapse;margin:12px 0 18px}
+  .page td,.page th{border:1px solid #000;padding:7px 8px;font-size:13.5px;vertical-align:top;line-height:1.55}
+  .page th{font-weight:700;text-align:center;background:#fafafa}
+  .page .sec{font-weight:700;margin:13px 0 3px}
+  .page .p{text-indent:2em;margin:5px 0;text-align:justify}
+  .page .right{text-align:right}
+  .page .center{text-align:center}
 
   .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1f2733;color:#fff;padding:12px 20px;border-radius:10px;font-size:14px;opacity:0;transition:.3s;pointer-events:none;z-index:99}
   .toast.show{opacity:1}
@@ -427,7 +433,7 @@ function modelPay(){
   (reason||'（請敘明借貸／買賣／債權發生之時間、金額及催討經過，並釋明之。）').split(/\n/).forEach(function(l){if(l.trim())body.push({t:'p',text:l.trim()})});
   if(counter) body.push({t:'p',text:'對待給付已履行情形：'+counter});
   body.push({t:'sec',text:'四、應發支付命令之陳述：聲請人之請求業已屆期，債務人迄未給付，爰依民事訴訟法第508條、第511條規定聲請發支付命令，如上所述。'});
-  return {title:'民事支付命令聲請狀',court:val('pay_court')||'臺灣○○地方法院',parties:parties,body:body,attachments:atts,signer:cr.name,footerCourt:(val('pay_court')||'臺灣○○地方法院')};
+  return {title:'民事支付命令聲請狀',docType:'pay',eventText:'為聲請核發支付命令事：',amountLabel:'訴訟標的金額或價額',claimAmount:money(amt),signerRole:'債權人',court:val('pay_court')||'臺灣○○地方法院',parties:parties,body:body,attachments:atts,signer:cr.name,footerCourt:(val('pay_court')||'臺灣○○地方法院')};
 }
 function modelNote(){
   var cr=partyRow('note_cred'),db=partyRow('note_debt');
@@ -446,7 +452,7 @@ function modelNote(){
     ['利息','自 '+(rf?rocDate(rf).replace('中華民國 ','民國'):'　')+' 起至清償日止，按年息 '+(rate||'6')+'％ 計算']
   ]});
   body.push({t:'sec',text:'三、聲請人為執票人，相對人為發票人，兩造間權利義務明確；謹提出本票原本乙紙（正本到院時當庭核閱後請發還），懇請鈞院鑒核，賜准如聲請意旨之裁定。'});
-  return {title:'民事本票裁定聲請狀',court:val('note_court')||'臺灣○○地方法院',parties:parties,body:body,attachments:['本票原本乙紙及影本乙份'],signer:cr.name,footerCourt:(val('note_court')||'臺灣○○地方法院')};
+  return {title:'民事本票裁定聲請狀',docType:'note',eventText:'為聲請本票裁定准予強制執行事：',amountLabel:'本票金額',claimAmount:money(amt),signerRole:'聲請人',court:val('note_court')||'臺灣○○地方法院',parties:parties,body:body,attachments:['本票原本乙紙及影本乙份'],signer:cr.name,footerCourt:(val('note_court')||'臺灣○○地方法院')};
 }
 function modelDivorce(){
   var m={name:val('dv_m_name'),birth:val('dv_m_birth'),id:val('dv_m_id'),tel:val('dv_m_tel'),addr:val('dv_m_addr')};
@@ -467,32 +473,52 @@ function modelDivorce(){
 ========================================================= */
 function build(){
   var mo=model();
-  $('preview').innerHTML=(mo.kind==='divorce')?htmlDivorce(mo):htmlPetition(mo);
+  var inner=(mo.kind==='divorce')?htmlDivorce(mo):htmlPetition(mo);
+  $('preview').innerHTML='<div id="pageBox"><div class="page" id="pageEl">'+inner+'</div></div>';
+  fitPreview();
 }
+function fitPreview(){
+  var pg=document.getElementById('pageEl');if(!pg)return;
+  var box=document.getElementById('pageBox');
+  var cont=document.getElementById('preview');
+  pg.style.transform='none';box.style.width='';box.style.height='';
+  var avail=cont.clientWidth-2;
+  if(avail>0&&avail<794){
+    var s=avail/794;
+    pg.style.transform='scale('+s+')';
+    box.style.width=(794*s)+'px';
+    box.style.height=(pg.offsetHeight*s)+'px';
+  }
+}
+window.addEventListener('resize',fitPreview);
 function htmlPetition(mo){
   var h='<h1>'+esc(mo.title)+'</h1>';
-  h+='<table><thead><tr><th style="width:14%">稱謂</th><th style="width:20%">姓名</th><th style="width:22%">身分證統一編號</th><th>住居所及聯絡電話</th></tr></thead><tbody>';
+  h+='<div class="meta">案　　號：　　　　年度　　　字第　　　　號　　承辦股別：　　　</div>';
+  h+='<div class="meta" style="margin-bottom:6px">'+esc(mo.amountLabel)+'：新臺幣 '+(mo.claimAmount||'　　　　')+' 元</div>';
+  h+='<table><thead><tr>'+
+     '<th style="width:12%">稱謂</th><th style="width:16%">姓名或名稱</th>'+
+     '<th style="width:20%">身分證統一編號</th><th>住居所</th><th style="width:16%">電話</th>'+
+     '</tr></thead><tbody>';
   mo.parties.forEach(function(p){
-    var contact=esc(p[3]||'');if(p[4])contact+=(contact?'　電話：':'電話：')+esc(p[4]);
-    h+='<tr><td>'+esc(p[0])+'</td><td>'+esc(p[1])+'</td><td>'+esc(p[2]||'')+'</td><td>'+contact+'</td></tr>';
+    h+='<tr><td style="text-align:center">'+esc(p[0])+'</td><td>'+esc(p[1])+'</td><td>'+esc(p[2]||'')+'</td><td>'+esc(p[3]||'')+'</td><td>'+esc(p[4]||'')+'</td></tr>';
   });
   h+='</tbody></table>';
-  h+='<div class="p center" style="text-indent:0;font-weight:700;margin:6px 0 12px">為聲請事件，依法提出聲請事：</div>';
+  h+='<div class="sec" style="text-indent:0">'+esc(mo.eventText)+'</div>';
   mo.body.forEach(function(b){
     if(b.t==='sec')h+='<div class="sec">'+esc(b.text)+'</div>';
     else if(b.t==='p')h+='<div class="p">'+nl2br(b.text)+'</div>';
     else if(b.t==='table2'){h+='<table>';b.rows.forEach(function(r){h+='<tr><td style="width:26%;font-weight:700">'+esc(r[0])+'</td><td>'+esc(r[1])+'</td></tr>'});h+='</table>';}
   });
+  h+='<div class="sec" style="margin-top:16px">謹　　狀</div>';
+  h+='<div class="p" style="text-indent:0;font-weight:700">此　致　'+esc(mo.footerCourt)+'　公鑒</div>';
   if(mo.attachments&&mo.attachments.length){
-    h+='<div class="sec">附　　件：</div>';
-    mo.attachments.forEach(function(a,i){h+='<div class="p">證物'+(i+1)+'：'+esc(a)+'　一份</div>'});
+    h+='<div class="sec" style="margin-top:12px">證物名稱及件數：</div>';
+    mo.attachments.forEach(function(a,i){h+='<div class="p">證物'+(i+1)+'：'+esc(a)+'　一份。</div>'});
   }
-  h+='<div class="sec" style="margin-top:18px">此　　致</div>';
-  h+='<div class="p" style="text-indent:1em;font-weight:700">'+esc(mo.footerCourt)+'　公鑒</div>';
-  h+='<div style="height:26px"></div>';
-  h+='<div class="right">具狀人（'+(mo.title.indexOf('支付')>=0?'債權人':'聲請人')+'）：'+esc(mo.signer||'　　　　')+'　（簽名或蓋章）</div>';
-  h+='<div class="right" style="margin-top:8px">撰狀人：　　　　　　（簽名或蓋章）</div>';
-  h+='<div class="center" style="margin-top:22px">'+rocDate('')+'</div>';
+  h+='<div style="height:30px"></div>';
+  h+='<div class="center" style="letter-spacing:3px;font-weight:700">中　華　民　國　　　　　年　　　　月　　　　日</div>';
+  h+='<div class="right" style="margin-top:22px">具狀人：'+esc(mo.signer||'　　　　')+'　　（簽名蓋章）</div>';
+  h+='<div class="right" style="margin-top:6px">撰狀人：　　　　　　　（簽名蓋章）</div>';
   return h;
 }
 function mgn(d){return d?('民國'+(parseInt(d.split('-')[0],10)-1911)+'年'+parseInt(d.split('-')[1],10)+'月'+parseInt(d.split('-')[2],10)+'日'):'　年　月　日'}
@@ -541,24 +567,28 @@ function rightP(t){return P({alignment:docx.AlignmentType.RIGHT,spacing:{after:6
 function centerP(t,b){return P({alignment:docx.AlignmentType.CENTER,spacing:{before:120},children:[R(t,{bold:!!b})]})}
 function cell(text,w,b){return new docx.TableCell({width:{size:w,type:docx.WidthType.PERCENTAGE},children:[P({children:[R(text,{size:24,bold:!!b})]})]});}
 function partyTableDocx(parties){
-  var rows=[new docx.TableRow({children:[cell('稱謂',14,true),cell('姓名',20,true),cell('身分證統一編號',24,true),cell('住居所及聯絡電話',42,true)]})];
-  parties.forEach(function(p){var contact=(p[3]||'')+(p[4]?'　電話：'+p[4]:'');rows.push(new docx.TableRow({children:[cell(p[0],14),cell(p[1],20),cell(p[2]||'',24),cell(contact,42)]}));});
+  var rows=[new docx.TableRow({children:[cell('稱謂',12,true),cell('姓名或名稱',16,true),cell('身分證統一編號',20,true),cell('住居所',36,true),cell('電話',16,true)]})];
+  parties.forEach(function(p){rows.push(new docx.TableRow({children:[cell(p[0],12),cell(p[1],16),cell(p[2]||'',20),cell(p[3]||'',36),cell(p[4]||'',16)]}));});
   return new docx.Table({width:{size:100,type:docx.WidthType.PERCENTAGE},rows:rows});
 }
 function kvTableDocx(rows){return new docx.Table({width:{size:100,type:docx.WidthType.PERCENTAGE},rows:rows.map(function(r){return new docx.TableRow({children:[cell(r[0],26,true),cell(r[1],74)]})})});}
 function docxPetition(mo){
-  var ch=[titleP(mo.title),partyTableDocx(mo.parties),P({alignment:docx.AlignmentType.CENTER,spacing:{before:120,after:120},children:[R('為聲請事件，依法提出聲請事：',{bold:true})]})];
+  var ch=[titleP(mo.title),
+    P({spacing:{after:20},children:[R('案　　號：　　　　年度　　　字第　　　　號　　承辦股別：　　　',{size:22})]}),
+    P({spacing:{after:120},children:[R(mo.amountLabel+'：新臺幣 '+(mo.claimAmount||'　　　　')+' 元',{size:22})]}),
+    partyTableDocx(mo.parties),
+    P({spacing:{before:120,after:80},children:[R(mo.eventText,{bold:true})]})];
   mo.body.forEach(function(b){
     if(b.t==='sec')ch.push(secP(b.text));
     else if(b.t==='p')b.text.split('\n').forEach(function(l){if(l.trim())ch.push(bodyP(l.trim()))});
     else if(b.t==='table2')ch.push(kvTableDocx(b.rows));
   });
-  if(mo.attachments&&mo.attachments.length){ch.push(secP('附　　件：'));mo.attachments.forEach(function(a,i){ch.push(bodyP('證物'+(i+1)+'：'+a+'　一份'))});}
-  ch.push(secP('此　　致'));
-  ch.push(P({spacing:{after:200},indent:{firstLine:240},children:[R(mo.footerCourt+'　公鑒',{bold:true})]}));
-  ch.push(rightP('具狀人（'+(mo.title.indexOf('支付')>=0?'債權人':'聲請人')+'）：'+(mo.signer||'')+'　（簽名或蓋章）'));
-  ch.push(rightP('撰狀人：　　　　　　（簽名或蓋章）'));
-  ch.push(centerP(rocDate('')));
+  ch.push(P({spacing:{before:160,after:20},children:[R('謹　　狀',{bold:true})]}));
+  ch.push(P({spacing:{after:120},children:[R('此　致　'+mo.footerCourt+'　公鑒',{bold:true})]}));
+  if(mo.attachments&&mo.attachments.length){ch.push(secP('證物名稱及件數：'));mo.attachments.forEach(function(a,i){ch.push(bodyP('證物'+(i+1)+'：'+a+'　一份。'))});}
+  ch.push(P({alignment:docx.AlignmentType.CENTER,spacing:{before:360,after:120},children:[R('中　華　民　國　　　　　年　　　　月　　　　日',{bold:true})]}));
+  ch.push(rightP('具狀人：'+(mo.signer||'')+'　　（簽名蓋章）'));
+  ch.push(rightP('撰狀人：　　　　　　　（簽名蓋章）'));
   return ch;
 }
 function docxDivorce(mo){
@@ -594,14 +624,16 @@ function docxDivorce(mo){
 function fileName(){var map={pay:'支付命令聲請狀',note:'本票裁定聲請狀',divorce:'離婚協議書'};return map[DOC]+'_'+new Date().toISOString().slice(0,10);}
 function downloadWord(){
   var mo=model();var children=(mo.kind==='divorce')?docxDivorce(mo):docxPetition(mo);
-  var doc=new docx.Document({styles:{default:{document:{run:{font:KAI,size:28}}}},sections:[{properties:{page:{margin:{top:1440,bottom:1440,left:1440,right:1440}}},children:children}]});
+  var doc=new docx.Document({styles:{default:{document:{run:{font:KAI,size:28}}}},sections:[{properties:{page:{size:{width:11906,height:16838},margin:{top:1440,bottom:1440,left:1440,right:1440}}},children:children}]});
   docx.Packer.toBlob(doc).then(function(blob){saveBlob(blob,fileName()+'.docx');toast('Word 檔已下載')}).catch(function(e){toast('產生 Word 失敗：'+e.message)});
 }
 function downloadPDF(){
-  var node=$('preview').cloneNode(true);
-  node.style.width='720px';node.style.padding='40px';node.style.background='#fff';node.style.boxShadow='none';
-  var wrap=document.createElement('div');wrap.style.position='fixed';wrap.style.left='-9999px';wrap.appendChild(node);document.body.appendChild(wrap);
-  html2pdf().set({margin:[10,10,10,10],filename:fileName()+'.pdf',image:{type:'jpeg',quality:0.98},html2canvas:{scale:2,useCORS:true},jsPDF:{unit:'mm',format:'a4',orientation:'portrait'},pagebreak:{mode:['css','legacy']}}).from(node).save().then(function(){wrap.remove();toast('PDF 已下載')}).catch(function(e){wrap.remove();toast('產生 PDF 失敗：'+e.message)});
+  build();
+  var src=document.getElementById('pageEl');
+  var node=src.cloneNode(true);
+  node.style.transform='none';node.style.boxShadow='none';node.style.width='794px';node.style.margin='0';
+  var wrap=document.createElement('div');wrap.style.position='fixed';wrap.style.left='-9999px';wrap.style.top='0';wrap.appendChild(node);document.body.appendChild(wrap);
+  html2pdf().set({margin:0,filename:fileName()+'.pdf',image:{type:'jpeg',quality:0.98},html2canvas:{scale:2,useCORS:true,windowWidth:794},jsPDF:{unit:'mm',format:'a4',orientation:'portrait'},pagebreak:{mode:['css','legacy']}}).from(node).save().then(function(){wrap.remove();toast('PDF 已下載')}).catch(function(e){wrap.remove();toast('產生 PDF 失敗：'+e.message)});
 }
 
 /* init */
